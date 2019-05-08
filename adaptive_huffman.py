@@ -1,5 +1,4 @@
-import copy
-import math
+import copy, sys
 
 #TODO Create parent class for letter and node for shared functions
 
@@ -31,7 +30,7 @@ class Node:
         if node.childB == self:
             return [node, "1"]
         print("ERROR: Parent attached does not reference the correct child")
-        exit
+        sys.exit()
 
 class Letter(Node):
     def __init__(self, letter, ascii_value, count):
@@ -101,12 +100,13 @@ class Heap:
     def get_leaf_by_ascii(self, ascii):
         low = 0
         high = len(self.leaves) - 1
+
         while low != high:
             index = int((low + high + 1) / 2)
             if ascii > self.leaves[index].ascii:
-                low = index
+                low = index 
             elif ascii < self.leaves[index].ascii:
-                high = index
+                high = index 
             else:
                 return self.leaves[index]
         return None
@@ -114,14 +114,14 @@ class Heap:
 
 
 class Huffman:
-    valid_characters = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+    valid_characters = "  !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
 
     # letters serves as an array of letters that will become the leaves of the heap when build is called
     def __init__(self):
         self.letters = []
         for i in range(len(self.valid_characters)):
             char = self.valid_characters[i]
-            self.letters.append(Letter(char, 32 + i, 1))
+            self.letters.append(Letter(char, 31 + i, 1))
         self.last_build = []
 
     # build returns a tree of Nodes used to decode text.
@@ -134,7 +134,7 @@ class Huffman:
         high = len(self.letters) - 1
 
         while low != high:
-            index = int((low + high) / 2)
+            index = int((low + high + 1) / 2)
             if ascii > self.letters[index].ascii:
                 low = index
             elif ascii < self.letters[index].ascii:
@@ -153,6 +153,9 @@ class Huffman:
             ascii = ord(chr)
             heap = self.build_heap()
             leaf = heap.get_leaf_by_ascii(ascii)
+            if leaf is None:
+                print("ERROR: LEAF NOT FOUND")
+                sys.exit()
             results = leaf.traverse_parent()
             while results[0] is not None:
                 leaf = results[0]
@@ -162,10 +165,10 @@ class Huffman:
             success = self.increment_count_by_ascii(ascii)
             if success == False:
                 print("ERROR: FAILED TO FIND ASCII")
-                exit            
+                sys.exit()       
 
-        print(code)
-            
+        return code
+        
     def adaptive_huffman_decode(self, str):
         source_text = ""
         while len(str) > 0:
@@ -186,11 +189,19 @@ class Huffman:
             success = self.increment_count_by_ascii(node.ascii)
             if success == False:
                 print("ERROR: FAILED TO FIND ASCII")
-                exit            
+                sys.exit()
 
-        print(source_text)
+        return source_text
 
 
+str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"#Huffman.valid_characters
+tree = Huffman()
+bits = tree.adaptive_huffman_encode(str)
+print(bits)
 
 tree = Huffman()
-tree.adaptive_huffman_decode("01100000011101011001010")
+src = tree.adaptive_huffman_decode(bits)
+print(src)
+
+print(len(bits))
+print(len(str) * 8)
