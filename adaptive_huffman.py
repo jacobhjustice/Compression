@@ -6,6 +6,7 @@ class Letter:
         self.letter = letter
         self.ascii = ascii_value
         self.count = count
+        self.parent = None
 
     def increment_count(self):
         self.count = self.count + 1
@@ -18,6 +19,9 @@ class Letter:
 
     def type(self):
         return "Leaf"
+
+    def attach_parent(self, parent):
+        self.parent = parent
 
 # Nodes are objects used inside of the binary tree built within the Huffman_Tree class. 
 # Nodes are recursive in nature; children of the node will either be other nodes, or letters (in the case where the child is a leaf).
@@ -39,62 +43,85 @@ class Node:
     def type(self):
         return "Node"
 
-class Huffman_Tree:
-    valid_characters = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-    
+    def attach_parent(self, parent):
+        self.parent = parent
 
-    # arr serves as an array of letters that will become the leaves of the tree when build is called
-    def __init__(self):
-        self.arr = []
-        for i in range(len(self.valid_characters)):
-            char = self.valid_characters[i]
-            self.arr.append(Letter(char, 32 + i, 1))
-
-    # build returns a tree of Nodes used to decode text.
-    def build(self):
-        arr = copy.deepcopy(self.arr)
-        while len(arr) > 1:
-            # Smallest letter
+class Heap:
+    def __init__(self, leaves):
+        self.leaves = []
+        while len(leaves) > 1:
+                # Smallest letter
             minA = Letter(None, 999, 999)
             # Second smallest letter
             minB = Letter(None, 999, 999)
 
-            for letter in arr:
+            for letter in leaves:
                 if letter.get_count() < minA.get_count() or (letter.get_count() == minA.get_count() and letter.get_ascii() < minA.get_ascii()):
                     minB = minA
                     minA = letter
                 elif letter.get_count() < minB.get_count() or (letter.get_count() == minB.get_count() and letter.get_ascii() < minB.get_ascii()):
                     minB = letter
             node = Node(minA, minB)
-            arr.remove(minA)
-            index = arr.index(minB)
-            arr[index] = node
+            leaves.remove(minA)
+            index = leaves.index(minB)
+            leaves[index] = node
+            minA.attach_parent(node)
+            minB.attach_parent(node)
+            if minA.type() == "Leaf":
+                self.leaves.append(minA)
+            if minB.type() == "Leaf":
+                self.leaves.append(minB)
+        self.root = leaves[0]
+        
 
-        return arr[0]
+
+class Huffman:
+    valid_characters = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+
+    # letters serves as an array of letters that will become the leaves of the heap when build is called
+    def __init__(self):
+        self.letters = []
+        for i in range(len(self.valid_characters)):
+            char = self.valid_characters[i]
+            self.letters.append(Letter(char, 32 + i, 1))
+        self.last_build = []
+
+    # build returns a tree of Nodes used to decode text.
+    def build_heap(self):
+        arr = copy.deepcopy(self.letters)
+        return Heap(arr)
 
     def increment_count_by_ascii(self, ascii):
         low = 0
-        high = len(self.arr) - 1
+        high = len(self.letters) - 1
 
         while low != high:
             index = int((low + high) / 2)
-            if ascii > self.arr[index].ascii:
+            if ascii > self.letters[index].ascii:
                 low = index
-            elif ascii < self.arr[index].ascii:
+            elif ascii < self.letters[index].ascii:
                 high = index
             else:
-                self.arr[index].increment_count()
+                self.letters[index].increment_count()
                 return True
         return False
 
     def adaptive_huffman_encode(self, str):
-        for chr in str:
-            ascii = ord(chr)
+        code = ""
+        while len(str) > 0:
+            encoding = ""
+            self.build_heap()
+            #traverse parent
+            #build up encoding as you go up
+            #reverse encoding
+            #append to code
+        #print code at end
             
     def adaptive_huffman_decode(self, str):
         source_text = ""
         while len(str) > 0:
-            node = self.build()
+            heap = self.build_heap()
+            node = heap.root
             while node.type() == "Node":
                 code = str[0:1]
                 str = str[1:]
@@ -105,7 +132,7 @@ class Huffman_Tree:
                     node = node.childA
                 else:
                     print("ERROR: RAN OUT OF DECODE")
-                    return 0;            
+                    return 0         
             # End stream for this letter, move on to next
             source_text = source_text + chr(node.ascii)
             success = self.increment_count_by_ascii(node.ascii)
@@ -117,5 +144,5 @@ class Huffman_Tree:
 
 
 
-tree = Huffman_Tree()
+tree = Huffman()
 tree.adaptive_huffman_decode("11010001101000")
