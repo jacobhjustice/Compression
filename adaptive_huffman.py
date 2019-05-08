@@ -1,12 +1,44 @@
 import copy
 import math
 
-class Letter:
+#TODO Create parent class for letter and node for shared functions
+
+class Node: 
+    def __init__(self):
+        self.parent = None
+
+    # Required functions for subclass
+    def get_count(self):
+        return NotImplementedError
+
+    def get_ascii(self):
+        return NotImplementedError
+
+    def type(self):
+        return NotImplementedError
+
+
+    # Shared functionality
+    def attach_parent(self, parent):
+        self.parent = parent
+
+    def traverse_parent(self):
+        if self.parent is None:
+            return [None]
+        node = self.parent
+        if node.childA == self:
+            return [node, "0"]
+        if node.childB == self:
+            return [node, "1"]
+        print("ERROR: Parent attached does not reference the correct child")
+        exit
+
+class Letter(Node):
     def __init__(self, letter, ascii_value, count):
         self.letter = letter
         self.ascii = ascii_value
         self.count = count
-        self.parent = None
+        super().__init__()
 
     def increment_count(self):
         self.count = self.count + 1
@@ -20,17 +52,15 @@ class Letter:
     def type(self):
         return "Leaf"
 
-    def attach_parent(self, parent):
-        self.parent = parent
-
-# Nodes are objects used inside of the binary tree built within the Huffman_Tree class. 
-# Nodes are recursive in nature; children of the node will either be other nodes, or letters (in the case where the child is a leaf).
-# In encoding, childA is assigned to the smaller order of the nodes/letters.
+# Parents are objects used inside of the binary tree built within the Huffman_Tree class. 
+# Parents are recursive in nature; children of the parent will also be nodes: either be other parents, or letters (in the case where the child is a leaf).
+# In encoding, childA is assigned to the smaller order of the nodes.
 # In decoding, a "0" in the code stream is represented by taking childA, a "1" represents taking childB
-class Node:
+class Parent(Node):
     def __init__(self, childA, childB):
         self.childA = childA
         self.childB = childB
+        super().__init__()
 
     def get_count(self):
         return self.childA.get_count() + self.childB.get_count()
@@ -41,16 +71,15 @@ class Node:
         return asciiA if asciiA > asciiB else asciiB
 
     def type(self):
-        return "Node"
-
-    def attach_parent(self, parent):
-        self.parent = parent
+        return "Parent"
 
 class Heap:
     def __init__(self, leaves):
         self.leaves = []
+        for l in leaves:
+            self.leaves.append(l)
         while len(leaves) > 1:
-                # Smallest letter
+            # Smallest letter
             minA = Letter(None, 999, 999)
             # Second smallest letter
             minB = Letter(None, 999, 999)
@@ -61,17 +90,26 @@ class Heap:
                     minA = letter
                 elif letter.get_count() < minB.get_count() or (letter.get_count() == minB.get_count() and letter.get_ascii() < minB.get_ascii()):
                     minB = letter
-            node = Node(minA, minB)
+            node = Parent(minA, minB)
             leaves.remove(minA)
             index = leaves.index(minB)
             leaves[index] = node
             minA.attach_parent(node)
             minB.attach_parent(node)
-            if minA.type() == "Leaf":
-                self.leaves.append(minA)
-            if minB.type() == "Leaf":
-                self.leaves.append(minB)
         self.root = leaves[0]
+
+    def get_leaf_by_ascii(self, ascii):
+        low = 0
+        high = len(self.leaves) - 1
+        while low != high:
+            index = int((low + high + 1) / 2)
+            if ascii > self.leaves[index].ascii:
+                low = index
+            elif ascii < self.leaves[index].ascii:
+                high = index
+            else:
+                return self.leaves[index]
+        return None
         
 
 
@@ -110,22 +148,32 @@ class Huffman:
         code = ""
         while len(str) > 0:
             encoding = ""
-            self.build_heap()
-            #traverse parent
-            #build up encoding as you go up
-            #reverse encoding
-            #append to code
-        #print code at end
+            chr = str[0:1]
+            str = str[1:]
+            ascii = ord(chr)
+            heap = self.build_heap()
+            leaf = heap.get_leaf_by_ascii(ascii)
+            results = leaf.traverse_parent()
+            while results[0] is not None:
+                leaf = results[0]
+                encoding = results[1] + encoding
+                results = leaf.traverse_parent()
+            code = code + encoding
+            success = self.increment_count_by_ascii(ascii)
+            if success == False:
+                print("ERROR: FAILED TO FIND ASCII")
+                exit            
+
+        print(code)
             
     def adaptive_huffman_decode(self, str):
         source_text = ""
         while len(str) > 0:
             heap = self.build_heap()
             node = heap.root
-            while node.type() == "Node":
+            while node.type() == "Parent":
                 code = str[0:1]
                 str = str[1:]
-
                 if code == "1":
                     node = node.childB
                 elif code == "0":
@@ -145,4 +193,4 @@ class Huffman:
 
 
 tree = Huffman()
-tree.adaptive_huffman_decode("11010001101000")
+tree.adaptive_huffman_decode("01100000011101011001010")
