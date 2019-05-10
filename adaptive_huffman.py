@@ -1,4 +1,4 @@
-import copy, sys
+import copy, sys, struct
 
 #TODO Create parent class for letter and node for shared functions
 
@@ -100,7 +100,6 @@ class Heap:
     def get_leaf_by_ascii(self, ascii):
         low = 0
         high = len(self.leaves) - 1
-
         while low != high:
             index = int((low + high + 1) / 2)
             if ascii > self.leaves[index].ascii:
@@ -114,7 +113,7 @@ class Heap:
 
 
 class Huffman:
-    valid_characters = "  !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+    valid_characters = "  !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\b "
 
     # letters serves as an array of letters that will become the leaves of the heap when build is called
     def __init__(self):
@@ -132,7 +131,6 @@ class Huffman:
     def increment_count_by_ascii(self, ascii):
         low = 0
         high = len(self.letters) - 1
-
         while low != high:
             index = int((low + high + 1) / 2)
             if ascii > self.letters[index].ascii:
@@ -145,12 +143,15 @@ class Huffman:
         return False
 
     def adaptive_huffman_encode(self, str):
+        str = str + "\b"
         code = ""
         while len(str) > 0:
             encoding = ""
             chr = str[0:1]
             str = str[1:]
             ascii = ord(chr)
+            if chr == "\b":
+                ascii = 127
             heap = self.build_heap()
             leaf = heap.get_leaf_by_ascii(ascii)
             if leaf is None:
@@ -183,8 +184,10 @@ class Huffman:
                     node = node.childA
                 else:
                     print("ERROR: RAN OUT OF DECODE")
-                    return 0         
+                    return source_text
             # End stream for this letter, move on to next
+            if(node.letter == "\b"):
+                return source_text
             source_text = source_text + chr(node.ascii)
             success = self.increment_count_by_ascii(node.ascii)
             if success == False:
@@ -193,15 +196,35 @@ class Huffman:
 
         return source_text
 
+huff = Huffman()
 
-str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"#Huffman.valid_characters
-tree = Huffman()
-bits = tree.adaptive_huffman_encode(str)
-print(bits)
-
-tree = Huffman()
-src = tree.adaptive_huffman_decode(bits)
-print(src)
-
-print(len(bits))
-print(len(str) * 8)
+value = input("\n\nWelcome to the Adaptive Huffman Encoder\nEnter...\n1: Encode\n2: Decode\n")
+while value != "1" and value != "2":
+    value = input("\n\nEnter valid option.\n")
+if value == "1":
+    str = input("\n\nEnter your source text:\n")
+    file = input("\n\nEnter desired filename to encode to:\n")
+    bits = huff.adaptive_huffman_encode(str)
+    with open(file, "wb") as f:
+        if len(bits) % 16 != 0:
+            bits += "0000000000000000"
+        while len(bits) > 16:
+            int_value = int(bits[:16], 2)
+            bits = bits[16:]
+            bin_array = struct.pack('i', int_value)
+            f.write(bin_array)
+if value == "2":
+    file = input("\n\nEnter filename to decode from:\n")
+    bits = "" #read file
+    with open(file, "rb") as f:
+        byte = f.read(4)
+        arr = []
+        while byte:
+            bin_array = struct.unpack('i', byte)
+            temp = str(bin(bin_array[0])[2:])
+            while len(temp) < 16:
+                temp = "0" + temp
+            bits = bits + temp
+            byte = f.read(4)
+    str = huff.adaptive_huffman_decode(bits)
+    print("Here is your decoded source text:\n" + str)
