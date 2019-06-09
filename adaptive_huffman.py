@@ -219,7 +219,7 @@ if value == "2":
     with open(file, "rb") as f:
         byte = f.read(4)
         arr = []
-        while byte:
+        while byte: 
             bin_array = struct.unpack('i', byte)
             temp = str(bin(bin_array[0])[2:])
             while len(temp) < 16:
